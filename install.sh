@@ -7,6 +7,8 @@ if [ -d /usr/local/include/google ];
             echo "Google Sparsehashmap Already Installed";
     else 
             echo "Installing Google Sparsehashmap"
+            echo "Download Sparsehashmap library gz <https://github.com/sparsehash/sparsehash/releases/tag/sparsehash-2.0.4>"
+            curl -X GET -L "https://github.com/sparsehash/sparsehash/archive/refs/tags/sparsehash-2.0.4.tar.gz" -o sparsehash-sparsehash-2.0.4.tar.gz
             echo "Extracting..."
             tar -xvf sparsehash-sparsehash-2.0.4.tar.gz  > /dev/null 2>&1
             cd sparsehash-sparsehash-2.0.4/
