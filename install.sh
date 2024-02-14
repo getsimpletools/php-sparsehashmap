@@ -38,4 +38,4 @@ echo "Adding Sparsehashmap .ini File"
 echo "extension=sparsehashmap.so" | tee -a $(php-config --ini-dir)/sparsehashmap.ini
 
 # Once complete, exit as success.
-exit(0);
+#exit(0);
