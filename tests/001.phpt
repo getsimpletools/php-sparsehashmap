@@ -16,7 +16,7 @@ $shm->remove("63-5039337");
 
 var_dump($shm->exists("63-5039337"));
 
-var_dump($shm->as_array());
+var_dump($shm->to_array());
 
 var_dump($shm->length());
 
@@ -26,7 +26,7 @@ var_dump($shm->read("63-5039337"));
 
 $shm->flush();
 
-var_dump($shm->as_array());
+var_dump($shm->to_array());
 
 ?>
 --EXPECT--
