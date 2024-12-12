@@ -100,7 +100,7 @@ static void php_sparsehashmap_iterator_move_forward(php_sparsehashmap_iterator_t
 
 static zend_object_iterator_funcs php_sparsehashmap_iterator_funcs = {
 	(void (*)(zend_object_iterator *))		php_sparsehashmap_iterator_dtor,
-	(int (*)(zend_object_iterator *))		php_sparsehashmap_iterator_validate,
+	(zend_result(*)(zend_object_iterator *))		php_sparsehashmap_iterator_validate,
 	(zval* (*)(zend_object_iterator *))		php_sparsehashmap_iterator_current_data,
 	(void (*)(zend_object_iterator *, zval *))	php_sparsehashmap_iterator_current_key,
 	(void (*)(zend_object_iterator *))		php_sparsehashmap_iterator_move_forward

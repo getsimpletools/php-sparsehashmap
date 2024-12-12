@@ -1,0 +1,6 @@
+CHANGE LOG
+
+1.0.3 - PHP 8.4 update
+* The zend_object_iterator_funcs valid member has changed its signature from
+  int(*)(zend_object_iterator *) to zend_result(*)(zend_object_iterator *) to
+  be more in line with what callbacks are returning.
