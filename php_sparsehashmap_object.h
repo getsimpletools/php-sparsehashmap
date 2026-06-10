@@ -16,8 +16,10 @@
   +----------------------------------------------------------------------+
 */
 
-#ifndef HAVE_SPARSEHASHMAP_OBJECT_H
-#define HAVE_SPARSEHASHMAP_OBJECT_H
+#pragma once
+
+#ifndef PHP_SPARSEHASHMAP_OBJECT_H
+#define PHP_SPARSEHASHMAP_OBJECT_H
 
 #ifndef __CPPSPARSEHASH__
 #include "sparsehashmap.h"
@@ -25,15 +27,49 @@
 
 
 /* {{{ Object Structs */
-typedef struct _php_sparsehashmap_t {
-	SparseHashMap *shm;
+struct php_sparsehashmap_object {
+	SparseHashMap *shm = nullptr;
 	zend_object std;
-} _php_sparsehashmap_t; /* }}} */
+}; /* }}} */
 
+using php_sparsehashmap_t = php_sparsehashmap_object;
 
 /* {{{ GET CLASS FROM ZEND */
-#define PHP_SPARSEHASHMAP_FETCH_FROM(obj)	((_php_sparsehashmap_t*) (((char*)obj) - XtOffsetOf(_php_sparsehashmap_t, std)))
-#define PHP_SPARSEHASHMAP_FETCH(z)			PHP_SPARSEHASHMAP_FETCH_FROM(Z_OBJ_P(z)); /* }}} */
+/*
+#define PHP_SPARSEHASHMAP_FETCH_FROM(obj) \
+    ((php_sparsehashmap_t*)(((char*)(obj)) - XtOffsetOf(php_sparsehashmap_t, std)))
+
+    == REINTERPRET TO CPP ==
+*/  
+
+static inline php_sparsehashmap_t* php_sparsehashmap_fetch_object(zend_object* obj)
+{
+  return reinterpret_cast<php_sparsehashmap_t*>(
+      reinterpret_cast<char*>(obj)
+      - XtOffsetOf(php_sparsehashmap_t, std)
+    );
+}
+// Allow CONST support too.
+static inline const php_sparsehashmap_t* php_sparsehashmap_fetch_object(const zend_object* obj)
+{
+    return reinterpret_cast<const php_sparsehashmap_t*>(
+        reinterpret_cast<const char*>(obj)
+        - XtOffsetOf(php_sparsehashmap_t, std)
+    );
+}
+
+/* }}} */
+
+/*
+#define PHP_SPARSEHASHMAP_FETCH(z)			PHP_SPARSEHASHMAP_FETCH_FROM(Z_OBJ_P(z)); 
+  
+    == REINTERPRET TO CPP ==
+*/
+
+static inline php_sparsehashmap_t* php_sparsehashmap_fetch(zval* zv)
+{
+  return php_sparsehashmap_fetch_object(Z_OBJ_P(zv));
+}
 
 
 /* {{{ MODULE INIT FUNCTION */
@@ -41,4 +77,4 @@ void php_sparsehashmap_init(void); /* }}} */
 
 
 
-#endif /* HAVE_SPARSEHASHMAP_OBJECT_H */
+#endif /* PHP_SPARSEHASHMAP_OBJECT_H */

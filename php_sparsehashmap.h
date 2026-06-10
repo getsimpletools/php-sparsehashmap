@@ -16,26 +16,24 @@
   +----------------------------------------------------------------------+
 */
 
+#pragma once
 #ifndef PHP_SPARSEHASHMAP_H
 #define PHP_SPARSEHASHMAP_H
 
 extern "C" {
-
 	extern zend_module_entry sparsehashmap_module_entry;
-	#define phpext_sparsehashmap_ptr &sparsehashmap_module_entry;
-
-	#define PHP_SPARSEHASHMAP_EXTNAME	"sparsehashmap"
-	#define PHP_SPARSEHASHMAP_EXTVER	"1.0.0"
-
-
-	#ifdef ZTS
-		#include "TSRM.h"
-	#endif
-
-	#if defined(ZTS) && defined(COMPILE_DL_SPARSEHASHMAP)
-		ZEND_TSRMLS_CACHE_EXTERN();
-	#endif
-
 }
+
+  #define phpext_sparsehashmap_ptr &sparsehashmap_module_entry;
+  
+  extern const zend_function_entry sparsehashmap_methods[];
+
+  #define PHP_SPARSEHASHMAP_EXTNAME "sparsehashmap"
+  #define PHP_SPARSEHASHMAP_EXTVER  "1.0.0"
+
+
+  #if defined(ZTS) && defined(COMPILE_DL_SPARSEHASHMAP)
+    ZEND_TSRMLS_CACHE_EXTERN();
+  #endif
 
 #endif /* PHP_SPARSEHASHMAP_H */

@@ -34,56 +34,71 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef __CPPSPARSEHASH__
-#define __CPPSPARSEHASH__
+#pragma once
+#ifndef CPPSPARSEHASH_H
+#define CPPSPARSEHASH_H
 
 extern "C" {
 	#include "php.h"
 }
 
-#include <fstream>
-#include <iostream>
-#include <stdbool.h>
+#include <string>
+#include <string_view>
 #include <sparsehash/sparse_hash_map> //https://github.com/sparsehash/sparsehash
 
 // Define the sparse hash map type
-typedef google::sparse_hash_map<std::string, std::string> _SparseHashMap;
-typedef google::sparse_hash_map<std::string, std::string>::iterator _SparseHashMapIterator;
+using _SparseHashMap = google::sparse_hash_map<std::string, std::string>;
+using _SparseHashMapIterator = _SparseHashMap::iterator;
 
 class SparseHashMap
 {
 	private:
-	    /**
-	     *  The internal Sparsehashmap var
-	     *  @var    google::sparse_hash_map
-	     */
-	    _SparseHashMap _shash;
-	    _SparseHashMapIterator _it;
-	    int _it_size;
+        /**
+        *  The internal Sparsehashmap var
+        *  @var    google::sparse_hash_map
+        */
+        _SparseHashMap _shash;
+        _SparseHashMapIterator _iterator{};
+        std::size_t iterator_size = 0;
 
-	public:
-	/**
-	 *  C++ Function Prototypes
-	 */
-					SparseHashMap();
-	virtual	 		~SparseHashMap() {_shash.clear();};
-	void 			insert(std::string arg1, std::string arg2);
-	std::string 	read(std::string key);
-	bool 	 		exists(std::string key);
-	void 			remove(std::string key);
-	int 	 		length();
-	int 	 		zlength();
-	void 			flush();
-	void 			gc();
-	_SparseHashMap 	getThisHashMap();
-	void			clone(_SparseHashMap _from);
-	int 			memory();
-	HashTable* 		iterated_object();
-	void			iterated_init();
-	int 			iterated_size();
-	std::string 	current_data();
-	std::string 	current_key();
-	void 			iterated_next();
+    public:
+        /**
+        *  C++ Function Prototypes
+        */
+                                 SparseHashMap();
+                                 ~SparseHashMap() = default;
+                                 
+                                 SparseHashMap(const SparseHashMap& other);
+        SparseHashMap&           operator=(const SparseHashMap&) = delete;
+        
+                                 SparseHashMap(SparseHashMap&&) noexcept = default;
+        SparseHashMap&           operator=(SparseHashMap&&) noexcept = default;
+        
+        void                     insert(const std::string_view& key, const std::string_view& value);
+        
+        // Lookup methods - accept string_view for zero-copy from PHP
+        
+        std::string              read(std::string_view key) const;
+        bool                     exists(std::string_view key) const;
+        void                     remove(std::string_view key);
+        
+        std::size_t              length() const noexcept;
+        zend_long                zlength() const noexcept;
+        void                     flush();
+        void                     gc();
+        
+        
+        const _SparseHashMap&    getThisHashMap() const noexcept; //return reference
+        void                     clone(const _SparseHashMap& _from);
+        
+        std::size_t              memory() const;
+        
+        HashTable*               iterated_object();
+        void                     iterated_init();
+        std::size_t              iterated_size() const noexcept;
+        std::string_view         current_data() const;
+        std::string_view         current_key() const;
+        void                     iterated_next();
 };
 
-#endif /* __CPPSPARSEHASH__ */
+#endif /* CPPSPARSEHASH_H */

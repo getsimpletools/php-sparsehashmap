@@ -1,5 +1,51 @@
 CHANGE LOG
 
+2.0.0 (2026-JUN)
+
+Major Performance & Modernization Release
+This release brings a significant modernization of the extension to C++17 standards, with major focus on performance, reduced memory copies, and code quality.
+
+* Key Improvements *
+
+**Performance Gains:**
+ - Insert operations ~12% faster
+ - to_array() / iteration ~36% faster
+ - Significant reduction in temporary std::string copies through widespread use of std::string_view
+
+**C++17 Modernization:**
+ - Full migration to std::string_view for all lookup operations (read, exists, remove)
+ - Added const correctness and noexcept where appropriate
+ - Modernized class design with deleted copy constructor, default move semantics, and in-class initializers
+ - Cleaner iterator implementation with proper Zend handler signatures
+
+**Code Quality & Stability:**
+ - Replaced legacy macros with modern inline fetch helpers (php_sparsehashmap_fetch_object)
+ - Fixed multiple bugs in iterator, clone, and object handlers
+ - Improved memory reporting and garbage collection behavior
+ - Better null safety and error handling
+
+**Build & Compatibility:**
+ - Updated config.m4 for C++17 requirement
+ - Cleaner header structure and include guards
+ - Improved compatibility with PHP 8.4+
+
+
+* Benchmark Results (900,000 items) *
+
+ - Insert: 5.09s → 4.48s
+ - to_array(): 0.174s → 0.111s
+ - Memory usage remains highly efficient (SparseHashMap core unchanged)
+
+* Breaking Changes *
+
+ - Minimum requirement is now C++17 and PHP 8.1+
+
+***Internal***
+
+ - Extensive refactoring of object handlers, iterator, and core C++ wrapper
+ - Removed redundant string conversions and legacy code patterns
+ - Much improved maintainability and standards compliance
+
 1.0.3 - PHP 8.4 update
 * The zend_object_iterator_funcs valid member has changed its signature from
   int(*)(zend_object_iterator *) to zend_result(*)(zend_object_iterator *) to

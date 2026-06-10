@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "sparsehashmap.h"
 #include<string>
-#include<sstream>
+#include<string_view>
 
 /**
  * SparseHashMap class
@@ -45,17 +45,20 @@ POSSIBILITY OF SUCH DAMAGE.
 /**
  *  C++ constructor
  */
-SparseHashMap::SparseHashMap(){_shash.set_deleted_key("");}
+SparseHashMap::SparseHashMap()
+{
+    _shash.set_deleted_key("");
+}
 
 /**
  *  Insert operation
  *  This method inserts key value into sparsehashmap
- *  @param  string     arg1<key> arg2<value>
+ *  @param  string     <key> <value>
  *  @return void
  */
-void SparseHashMap::insert(std::string arg1, std::string arg2)
+void SparseHashMap::insert(const std::string_view& key, const std::string_view& value)
 {
-    _shash[arg1] = arg2;
+    _shash[std::string(key)] = std::string(value);
 }
 
 /**
@@ -64,9 +67,14 @@ void SparseHashMap::insert(std::string arg1, std::string arg2)
  *  @param  key     Key to read
  *  @return string  Value to return
  */
-std::string SparseHashMap::read(std::string key)
+std::string SparseHashMap::read(std::string_view key) const
 {
-    return _shash[key];
+    auto it = _shash.find(std::string(key));
+    if (it != _shash.end()) {
+        return it->second;
+    }
+
+    return {};
 }
 
 /**
@@ -76,16 +84,9 @@ std::string SparseHashMap::read(std::string key)
  *  @param  key   Key to read
  *  @return int   Boolean True / False response
  */
-bool SparseHashMap::exists(std::string key)
+bool SparseHashMap::exists(std::string_view key) const
 {
-    if (_shash.find(key) == _shash.end())
-    {
-        return false;
-    }
-    else
-    {
-        return true;
-    }
+    return _shash.find(std::string(key)) != _shash.end();
 }
 
 /**
@@ -95,9 +96,9 @@ bool SparseHashMap::exists(std::string key)
  *  @param  string     Key
  *  @return void
  */
-void SparseHashMap::remove(std::string key)
+void SparseHashMap::remove(std::string_view key)
 {
-    _shash.erase(key);
+    _shash.erase(std::string(key));
 }
 
 /**
@@ -105,10 +106,21 @@ void SparseHashMap::remove(std::string key)
  *  This method returns size of the sparsehashmap
  *  @return int size
  */
-int SparseHashMap::length()
+std::size_t SparseHashMap::length() const noexcept
 {
-    return (int) _shash.size();
+    return _shash.size();
 }
+
+/**
+ *  zLength operation
+ *  This method returns size of the sparsehashmap
+ *  @return int size
+ */
+zend_long SparseHashMap::zlength() const noexcept
+{
+    return static_cast<zend_long>(length());
+}
+
 
 /**
  *  Flush operation
@@ -133,31 +145,31 @@ void SparseHashMap::gc()
  * Return a copy of the current sparsehashmap
  *  @return _SparseHashMap _shash;
 */
-_SparseHashMap SparseHashMap::getThisHashMap()
+const _SparseHashMap& SparseHashMap::getThisHashMap() const noexcept
 {
   return _shash;
+}
+
+/**
+ * C++ Copy Constructor
+ * Directly copy-constructs the underlying sparse_hash_map to avoid 
+ * deleted-key layout collision bugs during raw copy assignments.
+ */
+SparseHashMap::SparseHashMap(const SparseHashMap& other)
+    : _shash(other._shash)
+{
+    // Transient loop iterator states do not need to be duplicated
 }
 
 /**
  * Clone Operation
  * Copy from another instance into sparsehashmap
 */
-void SparseHashMap::clone(_SparseHashMap _from)
+void SparseHashMap::clone(const _SparseHashMap& _from)
 {
   _shash = _from;
 }
 
-/**
- *  Length operation
- *  This method returns size of the sparsehashmap
- *  @return int size
- */
-int SparseHashMap::zlength()
-{
-    int size = (int) _shash.size();
-    
-    return size;
-}
 
 /**
  *  Memory operation
@@ -165,23 +177,18 @@ int SparseHashMap::zlength()
  *  keys and values. Return Sum size.
  *  @return int memory
  */
-int SparseHashMap::memory()
+std::size_t SparseHashMap::memory() const
 {
 
-  size_t total = 0;
+  std::size_t total = 0;
 
-  for (google::sparse_hash_map<std::string, std::string>::iterator it = _shash.begin(); it != _shash.end(); ++it) 
+  for (const auto& pair : _shash) 
   {
-      std::string resp = it->second;
-      total += resp.size();
-
-      std::string *first = const_cast<std::string*>(&it->first);
-      total += first->size();
+      total += pair.first.size();
+      total += pair.second.size();
   }
 
-  int _total = total;
-
-  return _total;
+  return total;
 }
 
 
@@ -196,23 +203,20 @@ int SparseHashMap::memory()
 HashTable* SparseHashMap::iterated_object()
 {
 
-  zval array, value;
-  HashTable *ht;
+  zval array, value_zv;
   array_init(&array);
-  ht = Z_ARRVAL(array);
-
-  zend_string *_value;
-  zlength();
+  HashTable *ht = Z_ARRVAL(array);
   
-  for (google::sparse_hash_map<std::string, std::string>::iterator it = _shash.begin(); it != _shash.end(); ++it) 
+  //for (_SparseHashMapIterator it = _shash.begin(); it != _shash.end(); ++it) 
+  for (const auto& [key, value] : _shash) 
   {
-    std::string second = it->second;
-    std::string *first = const_cast<std::string*>(&it->first);
 
+    // const auto& key = it->first;
+    // const auto& value = it->second;
 
-    _value = zend_string_init(second.c_str(), strlen(second.c_str()), 0);
-    ZVAL_STR(&value, _value);
-    zend_hash_str_add(ht, first->c_str(), strlen(first->c_str()), &value);
+    zend_string *_value = zend_string_init(value.data(), value.size(), 0);
+    ZVAL_STR(&value_zv, _value);
+    zend_hash_str_add(ht, key.data(), key.size(), &value_zv);
 
   }
 
@@ -229,8 +233,8 @@ HashTable* SparseHashMap::iterated_object()
 
 void SparseHashMap::iterated_init()
 {
-  _it = _shash.begin();
-  _it_size = (int) _shash.size();
+  _iterator = _shash.begin();
+  iterator_size = _shash.size();
 }
 
 
@@ -242,9 +246,9 @@ void SparseHashMap::iterated_init()
  *  @return str data
  */
 
-int SparseHashMap::iterated_size()
+std::size_t SparseHashMap::iterated_size() const noexcept
 {
-  return _it_size;
+  return iterator_size;
 }
 
 /**
@@ -254,10 +258,13 @@ int SparseHashMap::iterated_size()
  *  @return str data
  */
 
-std::string SparseHashMap::current_data()
+std::string_view SparseHashMap::current_data() const
 {
-  std::string data = _it->second;
-  return data;
+    if(_iterator != const_cast<_SparseHashMap&>(_shash).end()){
+        return _iterator->second;
+    }
+
+    return {};
 }
 
 /**
@@ -267,12 +274,12 @@ std::string SparseHashMap::current_data()
  *  @return str key
  */
 
-std::string SparseHashMap::current_key()
+std::string_view SparseHashMap::current_key() const
 {
-  std::string *first = const_cast<std::string*>(&_it->first);
-  std::string key = *first;
-
-  return key;
+    if(_iterator != const_cast<_SparseHashMap&>(_shash).end()){
+        return _iterator->first;
+    }
+    return {};
 }
 
 /**
@@ -283,5 +290,7 @@ std::string SparseHashMap::current_key()
  */
 void SparseHashMap::iterated_next()
 {
-  ++_it;
+    if(_iterator != _shash.end()) {
+        ++_iterator;
+    }
 }

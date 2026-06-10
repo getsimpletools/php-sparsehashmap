@@ -66,6 +66,10 @@ ZEND_END_ARG_INFO() /* }}} */
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(SHM_length_args, 0, 0, IS_LONG, 1)
 ZEND_END_ARG_INFO(); /* }}} */
 
+/* {{{ */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(SHM_memory_args, 0, 0, IS_LONG, 1)
+ZEND_END_ARG_INFO(); /* }}} */
+
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(SHM_to_array_args, 0, 0, IS_ARRAY, 1)
 ZEND_END_ARG_INFO();
 
@@ -87,11 +91,8 @@ PHP_METHOD(Sparsehashmap, __construct)
 		return;
 	}
 
-	SparseHashMap *shm = NULL;
-	shm = new SparseHashMap();
-	
-	_php_sparsehashmap_t *intern = PHP_SPARSEHASHMAP_FETCH(getThis());
-	intern->shm = shm;
+	php_sparsehashmap_t *intern = php_sparsehashmap_fetch(getThis());
+	intern->shm = new SparseHashMap();
 
 } /* }}} */
 
@@ -99,18 +100,17 @@ PHP_METHOD(Sparsehashmap, __construct)
 /* {{{ */
 PHP_METHOD(Sparsehashmap, insert)
 {
-	zend_string *key;
-	zend_string *value;
-	_php_sparsehashmap_t *intern = PHP_SPARSEHASHMAP_FETCH(getThis());
+	zend_string *key, *value;
+	php_sparsehashmap_t *intern = php_sparsehashmap_fetch(getThis());
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "SS", &key, &value) != SUCCESS) {
 		return;
 	}
 
-	std::string key_conv = ZSTR_VAL(key);
-	std::string val_conv = ZSTR_VAL(value);
-
-	intern->shm->insert(key_conv, val_conv);
+	intern->shm->insert(
+		std::string_view(ZSTR_VAL(key), ZSTR_LEN(key)),
+		std::string_view(ZSTR_VAL(value), ZSTR_LEN(value))
+	);
 
 } /* }}} */
 
@@ -119,23 +119,17 @@ PHP_METHOD(Sparsehashmap, insert)
 PHP_METHOD(Sparsehashmap, read)
 {
 	zend_string *key;
-	zend_string *response;
 
-	_php_sparsehashmap_t *intern = PHP_SPARSEHASHMAP_FETCH(getThis());
+	php_sparsehashmap_t *intern = php_sparsehashmap_fetch(getThis());
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "S", &key) != SUCCESS) {
 		return;
 	}
 
-	std::string key_conv = ZSTR_VAL(key);
+	std::string_view key_view(ZSTR_VAL(key), ZSTR_LEN(key));
+	std::string resp = intern->shm->read(key_view);
 
-	std::string resp = intern->shm->read(key_conv);
-
-	response = zend_string_init(resp.c_str(), strlen(resp.c_str()), 0);
-
-
-	RETURN_STR(response);
-
+	RETURN_STRINGL(resp.data(), resp.size());
 	
 } /* }}} */
 
@@ -144,14 +138,15 @@ PHP_METHOD(Sparsehashmap, read)
 PHP_METHOD(Sparsehashmap, exists)
 {
 	zend_string *key;
-	_php_sparsehashmap_t *intern = PHP_SPARSEHASHMAP_FETCH(getThis());
+	php_sparsehashmap_t *intern = php_sparsehashmap_fetch(getThis());
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "S", &key) != SUCCESS) {
 		return;
 	}
-	std::string key_conv = ZSTR_VAL(key);
 
-	int response = intern->shm->exists(key_conv);
+	std::string_view key_view(ZSTR_VAL(key), ZSTR_LEN(key));
+
+	bool response = intern->shm->exists(key_view);
 
 	RETURN_BOOL(response);
 } /* }}} */
@@ -161,14 +156,14 @@ PHP_METHOD(Sparsehashmap, exists)
 PHP_METHOD(Sparsehashmap, remove)
 {
 	zend_string *key;
-	_php_sparsehashmap_t *intern = PHP_SPARSEHASHMAP_FETCH(getThis());
+	php_sparsehashmap_t *intern = php_sparsehashmap_fetch(getThis());
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "S", &key) != SUCCESS) {
 		return;
 	}
 
-	std::string key_conv = ZSTR_VAL(key);
-	intern->shm->remove(key_conv);
+	std::string_view key_view(ZSTR_VAL(key), ZSTR_LEN(key));
+	intern->shm->remove(key_view);
 
 } /* }}} */
 
@@ -176,22 +171,36 @@ PHP_METHOD(Sparsehashmap, remove)
 /* {{{ */
 PHP_METHOD(Sparsehashmap, length)
 {
-	_php_sparsehashmap_t *intern = PHP_SPARSEHASHMAP_FETCH(getThis());
+	php_sparsehashmap_t *intern = php_sparsehashmap_fetch(getThis());
 
 	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
 	}
 
-	int length = intern->shm->length();
+	auto length = intern->shm->length();
 
 	RETURN_LONG(length);
 } /* }}} */
 
 
 /* {{{ */
+PHP_METHOD(Sparsehashmap, memory)
+{
+	php_sparsehashmap_t *intern = php_sparsehashmap_fetch(getThis());
+
+	if (zend_parse_parameters_none() != SUCCESS) {
+		return;
+	}
+
+	auto memory = intern->shm->memory();
+
+	RETURN_LONG(memory);
+} /* }}} */
+
+/* {{{ */
 PHP_METHOD(Sparsehashmap, flush)
 {
-	_php_sparsehashmap_t *intern = PHP_SPARSEHASHMAP_FETCH(getThis());
+	php_sparsehashmap_t *intern = php_sparsehashmap_fetch(getThis());
 
 	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
@@ -207,7 +216,7 @@ PHP_METHOD(Sparsehashmap, flush)
 PHP_METHOD(Sparsehashmap, to_array)
 {
 	HashTable *array;
-	_php_sparsehashmap_t *intern = PHP_SPARSEHASHMAP_FETCH(getThis());
+	php_sparsehashmap_t *intern = php_sparsehashmap_fetch(getThis());
 
 	if (zend_parse_parameters_none() != SUCCESS) {
 		return;
@@ -228,13 +237,14 @@ PHP_METHOD(Sparsehashmap, to_array)
 
 
 /* {{{ */
-zend_function_entry sparsehashmap_methods[] = {
+extern const zend_function_entry sparsehashmap_methods[] = {
 	PHP_ME(Sparsehashmap, __construct, arginfo_none, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(Sparsehashmap, insert, SHM_insert_args, ZEND_ACC_PUBLIC)
 	PHP_ME(Sparsehashmap, read, SHM_read_args, ZEND_ACC_PUBLIC)
 	PHP_ME(Sparsehashmap, exists, SHM_exists_args, ZEND_ACC_PUBLIC)
 	PHP_ME(Sparsehashmap, remove, SHM_remove_args, ZEND_ACC_PUBLIC)
 	PHP_ME(Sparsehashmap, length, SHM_length_args, ZEND_ACC_PUBLIC)
+	PHP_ME(Sparsehashmap, memory, SHM_memory_args, ZEND_ACC_PUBLIC)
 	PHP_ME(Sparsehashmap, flush, arginfo_none, ZEND_ACC_PUBLIC)
 	PHP_ME(Sparsehashmap, to_array, SHM_to_array_args, ZEND_ACC_PUBLIC)
 	PHP_FE_END
@@ -260,15 +270,14 @@ PHP_MINIT_FUNCTION(sparsehashmap)
 /* {{{ PHP_RINIT_FUNCTION
 */
 
-extern "C" {
-	PHP_RINIT_FUNCTION(sparsehashmap)
-	{
-		#if defined(COMPILE_DL_SPARSEHASHMAP) && defined(ZTS)
-			ZEND_TSRMLS_CACHE_UPDATE();
-		#endif
 
-		return SUCCESS;
-	}
+PHP_RINIT_FUNCTION(sparsehashmap)
+{
+	#if defined(COMPILE_DL_SPARSEHASHMAP) && defined(ZTS)
+		ZEND_TSRMLS_CACHE_UPDATE();
+	#endif
+
+	return SUCCESS;
 }
 
 /* {{{ PHP_MINFO_FUNCTION
